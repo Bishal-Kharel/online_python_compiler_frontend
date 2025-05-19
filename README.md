@@ -1,6 +1,6 @@
-# CodeBuddy Frontend
+# CodeTech Frontend
 
-React + Vite frontend for CodeBuddy — an online Python code editor with real-time code execution.
+React + Vite frontend for CodeTech— an online Python code editor with real-time code execution.
 
 ---
 
