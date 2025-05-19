@@ -1,0 +1,7 @@
+.terminal {
+  height: 40vh;
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  overflow: hidden;
+}

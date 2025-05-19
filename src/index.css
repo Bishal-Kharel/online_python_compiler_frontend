@@ -1,0 +1,21 @@
+body {
+  margin: 0;
+  background: #ffffff;
+}
+
+.xterm {
+  padding: 10px;
+}
+
+.xterm .xterm-viewport {
+  background-color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+  .editor {
+    height: 50_anchorvh !important;
+  }
+  .terminal {
+    height: 40vh !important;
+  }
+}

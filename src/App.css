@@ -1,0 +1,94 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+}
+
+.main {
+  display: flex;
+  gap: 20px;
+}
+
+.editor-section {
+  flex: 2;
+}
+
+.cm-editor {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.buttons {
+  margin: 10px 0;
+}
+
+button {
+  padding: 10px 20px;
+  margin-right: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #218838;
+}
+
+#terminal {
+  height: 200px;
+  background: #000;
+}
+
+.turtle-output {
+  margin-top: 10px;
+}
+
+.turtle-output img {
+  max-width: 100%;
+  border: 1px solid #ccc;
+}
+
+.sidebar {
+  flex: 1;
+}
+
+.hints,
+.examples {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.hints h2,
+.examples h2 {
+  margin-top: 0;
+}
+
+.hints ul {
+  list-style: none;
+  padding: 0;
+}
+
+.hints li {
+  margin-bottom: 10px;
+}
+
+.examples button {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  background: #007bff;
+}
+
+.examples button:hover {
+  background: #0056b3;
+}
