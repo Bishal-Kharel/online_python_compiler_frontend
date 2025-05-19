@@ -67,12 +67,14 @@ const TerminalDisplay = ({
   useEffect(() => {
     if (ws) {
       ws.onmessage = (event) => {
+        console.log('WebSocket message:', event.data); // Add logging
         try {
           const data = JSON.parse(event.data);
           if (data.output) {
             const cleanOutput = data.output.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
             terminalRef.current.write(cleanOutput);
             isWaitingForInput.current = cleanOutput.includes('>>>');
+            console.log('isWaitingForInput:', isWaitingForInput.current); // Add logging
           } else if (data.error) {
             terminalRef.current.write(`Error: ${data.error}\r\n`);
             isWaitingForInput.current = false;
@@ -85,7 +87,7 @@ const TerminalDisplay = ({
         }
       };
     }
-  }, [ws, isWaitingForInput]);
+  }, [ws]);
 
   useEffect(() => {
     if (resetTerminal) {
