@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
-import { Terminal } from "xterm";
-import "xterm/css/xterm.css";
-import { FitAddon } from "xterm-addon-fit";
-import styles from "../styles/TerminalDisplay.module.css";
+import React, { useEffect, useRef } from 'react';
+import { Terminal } from 'xterm';
+import 'xterm/css/xterm.css';
+import { FitAddon } from 'xterm-addon-fit';
+import styles from '../styles/TerminalDisplay.module.css';
 
 const TerminalDisplay = ({
   ws,
@@ -18,35 +18,35 @@ const TerminalDisplay = ({
     terminalRef.current = new Terminal({
       cursorBlink: true,
       theme: {
-        background: "#ffffff",
-        foreground: "#000000",
-        cursor: "#000000",
+        background: '#ffffff',
+        foreground: '#000000',
+        cursor: '#000000',
       },
       fontSize: 14,
     });
     terminalRef.current.loadAddon(fitAddonRef.current);
-    const termElement = document.getElementById("terminal");
+    const termElement = document.getElementById('terminal');
     terminalRef.current.open(termElement);
     fitAddonRef.current.fit();
 
     terminalRef.current.onData((data) => {
       if (isWaitingForInput.current) {
-        if (data === "\r") {
-          terminalRef.current.write("\r\n");
+        if (data === '\r') {
+          terminalRef.current.write('\r\n');
           sendInput(inputBuffer.current);
-          inputBuffer.current = "";
-        } else if (data === "\b" || data === "\x7F") {
+          inputBuffer.current = '';
+        } else if (data === '\b' || data === '\x7F') {
           if (inputBuffer.current.length > 0) {
             inputBuffer.current = inputBuffer.current.slice(0, -1);
-            terminalRef.current.write("\b \b");
+            terminalRef.current.write('\b \b');
           }
-        } else if (data >= " " && data <= "~") {
+        } else if (data >= ' ' && data <= '~') {
           inputBuffer.current += data;
           terminalRef.current.write(data);
         }
       } else {
-        if (data === "\r") {
-          terminalRef.current.write("\r\n");
+        if (data === '\r') {
+          terminalRef.current.write('\r\n');
         }
       }
     });
@@ -54,11 +54,13 @@ const TerminalDisplay = ({
     const handleResize = () => {
       fitAddonRef.current.fit();
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      terminalRef.current.dispose();
+      window.removeEventListener('resize', handleResize);
+      if (terminalRef.current) {
+        terminalRef.current.dispose();
+      }
     };
   }, []);
 
@@ -68,29 +70,30 @@ const TerminalDisplay = ({
         try {
           const data = JSON.parse(event.data);
           if (data.output) {
-            const cleanOutput = data.output.replace(
-              /[\x00-\x1F\x7F-\x9F]/g,
-              ""
-            );
-            terminalRef.current.write(
-              cleanOutput.endsWith("\n") ? cleanOutput : cleanOutput + "\r\n"
-            );
-            isWaitingForInput.current = cleanOutput.includes(">>>");
+            const cleanOutput = data.output.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            terminalRef.current.write(cleanOutput);
+            isWaitingForInput.current = cleanOutput.includes('>>>');
           } else if (data.error) {
             terminalRef.current.write(`Error: ${data.error}\r\n`);
             isWaitingForInput.current = false;
+          } else if (data.message) {
+            terminalRef.current.write(`${data.message}\r\n`);
+            isWaitingForInput.current = false;
           }
         } catch (e) {
-          console.error("WebSocket message error:", e);
+          console.error('WebSocket message error:', e);
         }
       };
     }
-  }, [ws]);
+  }, [ws, isWaitingForInput]);
 
   useEffect(() => {
     if (resetTerminal) {
-      terminalRef.current.reset();
-      fitAddonRef.current.fit();
+      if (terminalRef.current) {
+        terminalRef.current.reset();
+        fitAddonRef.current.fit();
+      }
+      isWaitingForInput.current = false;
     }
   }, [resetTerminal]);
 
