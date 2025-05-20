@@ -12,6 +12,7 @@ function App() {
     '# Write your Python code here\nprint("Welcome to CodeTech!")'
   );
   const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [isRunning, setIsRunning] = useState(false);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const inputBufferRef = useRef("");
@@ -31,11 +32,38 @@ function App() {
       console.log("WebSocket connected");
       setConnectionStatus("connected");
       reconnectAttempts.current = 0;
+      // Send ping every 15 seconds to prevent disconnection
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ ping: true }));
+        } else {
+          clearInterval(pingInterval);
+        }
+      }, 15000);
+    };
+
+    ws.onmessage = (event) => {
+      console.log("WebSocket message:", event.data);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.output) {
+          isWaitingForInput.current = data.output.includes(">>>");
+          console.log("isWaitingForInput:", isWaitingForInput.current);
+        } else if (data.error) {
+          isWaitingForInput.current = false;
+          setIsRunning(false);
+        } else if (data.pong) {
+          console.log("Received pong");
+        }
+      } catch (e) {
+        console.error("WebSocket message error:", e);
+      }
     };
 
     ws.onclose = (event) => {
       console.log(`WebSocket closed with code: ${event.code}`);
       setConnectionStatus("disconnected");
+      setIsRunning(false);
       reconnectAttempts.current += 1;
       const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 10000);
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
@@ -44,25 +72,30 @@ function App() {
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
       setConnectionStatus("error");
+      setIsRunning(false);
     };
   };
 
   const sendInput = (input) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ input }));
-      isWaitingForInput.current = false;
+      // Don't clear isWaitingForInput here; backend controls it
     } else {
       console.error("WebSocket not connected");
+      isWaitingForInput.current = false;
+      setIsRunning(false);
     }
   };
 
   const runCode = () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ code }));
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && !isRunning) {
+      setIsRunning(true);
       setResetTerminal(true);
+      wsRef.current.send(JSON.stringify({ code }));
       setTimeout(() => setResetTerminal(false), 0);
+      isWaitingForInput.current = false;
     } else {
-      console.error("WebSocket not connected");
+      console.error("WebSocket not connected or process already running");
     }
   };
 
@@ -70,8 +103,7 @@ function App() {
     connectWebSocket();
     return () => {
       if (wsRef.current) wsRef.current.close();
-      if (reconnectTimeoutRef.current)
-        clearTimeout(reconnectTimeoutRef.current);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
   }, []);
 
@@ -81,16 +113,15 @@ function App() {
       <main className={styles.main}>
         <ConnectionStatus status={connectionStatus} />
         <CodeEditor code={code} setCode={setCode} />
-        <RunButton
-          onClick={runCode}
-          disabled={connectionStatus !== "connected"}
-        />
+        <RunButton onClick={runCode} disabled={connectionStatus !== "connected" || isRunning} />
         <TerminalDisplay
           ws={wsRef.current}
           isWaitingForInput={isWaitingForInput}
           inputBuffer={inputBufferRef}
           sendInput={sendInput}
           resetTerminal={resetTerminal}
+          isRunning={isRunning}
+          setIsRunning={setIsRunning}
         />
       </main>
       <Footer />
