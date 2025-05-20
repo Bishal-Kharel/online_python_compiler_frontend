@@ -98,7 +98,6 @@ function App() {
       console.log("Sent code:", code);
       setTimeout(() => setResetTerminal(false), 0);
       isWaitingForInput.current = false;
-      // Fallback timeout to reset state
       setTimeout(() => {
         if (isRunning) {
           console.warn("No output received, resetting state");
@@ -106,7 +105,7 @@ function App() {
           setResetTerminal(true);
           setTimeout(() => setResetTerminal(false), 0);
         }
-      }, 3000);
+      }, 2000); // Reduced to 2 seconds
     } else {
       console.error("WebSocket not connected or process already running");
     }
