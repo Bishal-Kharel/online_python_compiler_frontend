@@ -30,10 +30,10 @@ const TerminalDisplay = ({
     terminalRef.current.loadAddon(fitAddonRef.current);
     const termElement = document.getElementById("terminal");
     terminalRef.current.open(termElement);
-    fitAddonRef.current.fit();
+    fitAddonRef.fit();
 
     const handleResize = () => {
-      fitAddonRef.current.fit();
+      fitAddonRef.fit();
     };
     window.addEventListener("resize", handleResize);
 
@@ -48,7 +48,7 @@ const TerminalDisplay = ({
   useEffect(() => {
     if (ws) {
       ws.onmessage = (event) => {
-        console.log("WebSocket message received:", event.data);
+        console.log("Raw WebSocket message:", event.data);
         try {
           const data = JSON.parse(event.data);
           if (data.output) {
@@ -69,7 +69,7 @@ const TerminalDisplay = ({
             console.log("Received pong");
           }
         } catch (e) {
-          console.error("WebSocket message error:", e);
+          console.error("WebSocket message parse error:", e, "Raw data:", event.data);
           terminalRef.current.write(`\x1b[31mError: WebSocket message error\x1b[0m\r\n`);
           setIsRunning(false);
         }
@@ -80,7 +80,7 @@ const TerminalDisplay = ({
   useEffect(() => {
     if (resetTerminal && terminalRef.current) {
       terminalRef.current.reset();
-      fitAddonRef.current.fit();
+      fitAddonRef.fit();
       isWaitingForInput.current = false;
       setInputValue("");
       console.log("Terminal reset");
@@ -93,6 +93,19 @@ const TerminalDisplay = ({
       console.log("Input field focused");
     }
   }, [isWaitingForInput]);
+
+  useEffect(() => {
+    if (isRunning && !isWaitingForInput.current) {
+      const timeout = setTimeout(() => {
+        if (isRunning && !isWaitingForInput.current) {
+          terminalRef.current.write(`\x1b[31mError: No output received from server\x1b[0m\r\n`);
+          setIsRunning(false);
+          console.log("No output timeout, isRunning set to false");
+        }
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isRunning, setIsRunning]);
 
   const handleInputKeyPress = (e) => {
     if (e.key === "Enter" && isWaitingForInput.current) {
