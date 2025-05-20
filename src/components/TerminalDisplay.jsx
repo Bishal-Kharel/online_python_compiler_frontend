@@ -4,14 +4,7 @@ import "xterm/css/xterm.css";
 import { FitAddon } from "xterm-addon-fit";
 import styles from "../styles/TerminalDisplay.module.css";
 
-const TerminalDisplay = ({
-  ws,
-  isWaitingForInput,
-  sendInput,
-  resetTerminal,
-  isRunning,
-  setIsRunning,
-}) => {
+const TerminalDisplay = ({ ws, isWaitingForInput, sendInput, isRunning, setIsRunning }) => {
   const terminalRef = useRef(null);
   const fitAddonRef = useRef(new FitAddon());
   const [inputValue, setInputValue] = useState("");
@@ -20,28 +13,25 @@ const TerminalDisplay = ({
   useEffect(() => {
     terminalRef.current = new Terminal({
       cursorBlink: true,
-      theme: {
-        background: "#ffffff",
-        foreground: "#000000",
-        cursor: "#000000",
-      },
+      theme: { background: "#ffffff", foreground: "#000000", cursor: "#000000" },
       fontSize: 14,
     });
     terminalRef.current.loadAddon(fitAddonRef.current);
     const termElement = document.getElementById("terminal");
-    terminalRef.current.open(termElement);
-    fitAddonRef.fit();
+    if (termElement) {
+      terminalRef.current.open(termElement);
+      fitAddonRef.current.fit();
+      terminalRef.current.write("Terminal initialized\r\n");
+    } else {
+      console.error("Terminal element not found");
+    }
 
-    const handleResize = () => {
-      fitAddonRef.fit();
-    };
+    const handleResize = () => fitAddonRef.current.fit();
     window.addEventListener("resize", handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (terminalRef.current) {
-        terminalRef.current.dispose();
-      }
+      if (terminalRef.current) terminalRef.current.dispose();
     };
   }, []);
 
@@ -75,17 +65,17 @@ const TerminalDisplay = ({
         }
       };
     }
-  }, [ws, setIsRunning]);
+  }, [ws, isWaitingForInput, setIsRunning]);
 
   useEffect(() => {
-    if (resetTerminal && terminalRef.current) {
+    if (isRunning) {
       terminalRef.current.reset();
-      fitAddonRef.fit();
+      fitAddonRef.current.fit();
       isWaitingForInput.current = false;
       setInputValue("");
       console.log("Terminal reset");
     }
-  }, [resetTerminal]);
+  }, [isRunning]);
 
   useEffect(() => {
     if (isWaitingForInput.current && inputRef.current) {
@@ -93,19 +83,6 @@ const TerminalDisplay = ({
       console.log("Input field focused");
     }
   }, [isWaitingForInput]);
-
-  useEffect(() => {
-    if (isRunning && !isWaitingForInput.current) {
-      const timeout = setTimeout(() => {
-        if (isRunning && !isWaitingForInput.current) {
-          terminalRef.current.write(`\x1b[31mError: No output received from server\x1b[0m\r\n`);
-          setIsRunning(false);
-          console.log("No output timeout, isRunning set to false");
-        }
-      }, 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isRunning, setIsRunning]);
 
   const handleInputKeyPress = (e) => {
     if (e.key === "Enter" && isWaitingForInput.current) {
