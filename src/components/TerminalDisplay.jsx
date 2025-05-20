@@ -61,7 +61,7 @@ const TerminalDisplay = ({
               console.log("Process exited, isRunning set to false");
             }
           } else if (data.error) {
-            terminalRef.current.write(`Error: ${data.error}\r\n`);
+            terminalRef.current.write(`\x1b[31mError: ${data.error}\x1b[0m\r\n`);
             isWaitingForInput.current = false;
             setIsRunning(false);
             console.log("Error displayed:", data.error);
@@ -70,7 +70,7 @@ const TerminalDisplay = ({
           }
         } catch (e) {
           console.error("WebSocket message error:", e);
-          terminalRef.current.write(`Error: WebSocket message error\r\n`);
+          terminalRef.current.write(`\x1b[31mError: WebSocket message error\x1b[0m\r\n`);
           setIsRunning(false);
         }
       };
