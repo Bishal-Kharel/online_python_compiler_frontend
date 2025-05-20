@@ -38,7 +38,7 @@ function App() {
         } else {
           clearInterval(pingInterval);
         }
-      }, 2000); // Ping every 2 seconds
+      }, 2000);
     };
 
     ws.onmessage = (event) => {
@@ -100,13 +100,13 @@ function App() {
       isWaitingForInput.current = false;
       // Fallback timeout to reset state
       setTimeout(() => {
-        if (isRunning && !isWaitingForInput.current) {
+        if (isRunning) {
           console.warn("No output received, resetting state");
           setIsRunning(false);
           setResetTerminal(true);
           setTimeout(() => setResetTerminal(false), 0);
         }
-      }, 3000); // 3-second timeout
+      }, 3000);
     } else {
       console.error("WebSocket not connected or process already running");
     }
