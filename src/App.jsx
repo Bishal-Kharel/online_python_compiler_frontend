@@ -16,6 +16,7 @@ function App() {
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const isWaitingForInput = useRef(false);
+  const reconnectAttempts = useRef(0);
   const [resetTerminal, setResetTerminal] = useState(false);
 
   const connectWebSocket = () => {
@@ -33,10 +34,11 @@ function App() {
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ ping: true }));
+          console.log("Sent ping");
         } else {
           clearInterval(pingInterval);
         }
-      }, 5000); // Ping every 5 seconds
+      }, 3000); // Ping every 3 seconds
     };
 
     ws.onmessage = (event) => {
@@ -49,6 +51,7 @@ function App() {
         } else if (data.error) {
           isWaitingForInput.current = false;
           setIsRunning(false);
+          console.log("Error received:", data.error);
         } else if (data.pong) {
           console.log("Received pong");
         }
@@ -79,6 +82,7 @@ function App() {
   const sendInput = (input) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ input }));
+      console.log("Sent input:", input);
     } else {
       console.error("WebSocket not connected");
       isWaitingForInput.current = false;
@@ -91,8 +95,16 @@ function App() {
       setIsRunning(true);
       setResetTerminal(true);
       wsRef.current.send(JSON.stringify({ code }));
+      console.log("Sent code:", code);
       setTimeout(() => setResetTerminal(false), 0);
       isWaitingForInput.current = false;
+      // Timeout to reset isRunning if no output received
+      setTimeout(() => {
+        if (isRunning && !isWaitingForInput.current) {
+          console.warn("No output received, resetting isRunning");
+          setIsRunning(false);
+        }
+      }, 10000); // 10-second timeout
     } else {
       console.error("WebSocket not connected or process already running");
     }
