@@ -105,9 +105,8 @@ function App() {
           setIsRunning(false);
           setResetTerminal(true);
           setTimeout(() => setResetTerminal(false), 0);
-          wsRef.current.send(JSON.stringify({ error: "Reset due to no output" }));
         }
-      }, 5000); // 5-second timeout
+      }, 3000); // 3-second timeout
     } else {
       console.error("WebSocket not connected or process already running");
     }
