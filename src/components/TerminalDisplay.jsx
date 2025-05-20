@@ -48,21 +48,23 @@ const TerminalDisplay = ({
   useEffect(() => {
     if (ws) {
       ws.onmessage = (event) => {
-        console.log("WebSocket message:", event.data);
+        console.log("WebSocket message received:", event.data);
         try {
           const data = JSON.parse(event.data);
           if (data.output) {
             const cleanOutput = data.output.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
             terminalRef.current.write(cleanOutput);
             isWaitingForInput.current = cleanOutput.includes(">>>");
-            console.log("isWaitingForInput:", isWaitingForInput.current);
+            console.log("isWaitingForInput set to:", isWaitingForInput.current);
             if (cleanOutput.includes("Process exited")) {
               setIsRunning(false);
+              console.log("Process exited, isRunning set to false");
             }
           } else if (data.error) {
             terminalRef.current.write(`Error: ${data.error}\r\n`);
             isWaitingForInput.current = false;
             setIsRunning(false);
+            console.log("Error displayed:", data.error);
           } else if (data.pong) {
             console.log("Received pong");
           }
@@ -81,12 +83,14 @@ const TerminalDisplay = ({
       fitAddonRef.current.fit();
       isWaitingForInput.current = false;
       setInputValue("");
+      console.log("Terminal reset");
     }
   }, [resetTerminal]);
 
   useEffect(() => {
     if (isWaitingForInput.current && inputRef.current) {
       inputRef.current.focus();
+      console.log("Input field focused");
     }
   }, [isWaitingForInput]);
 
@@ -97,6 +101,7 @@ const TerminalDisplay = ({
         sendInput(input);
         terminalRef.current.write(input + "\r\n");
         setInputValue("");
+        console.log("Input sent:", input);
       }
     }
   };
