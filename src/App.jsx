@@ -15,9 +15,7 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  const inputBufferRef = useRef("");
   const isWaitingForInput = useRef(false);
-  const reconnectAttempts = useRef(0);
   const [resetTerminal, setResetTerminal] = useState(false);
 
   const connectWebSocket = () => {
@@ -32,14 +30,13 @@ function App() {
       console.log("WebSocket connected");
       setConnectionStatus("connected");
       reconnectAttempts.current = 0;
-      // Send ping every 15 seconds to prevent disconnection
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ ping: true }));
         } else {
           clearInterval(pingInterval);
         }
-      }, 15000);
+      }, 5000); // Ping every 5 seconds
     };
 
     ws.onmessage = (event) => {
@@ -57,6 +54,7 @@ function App() {
         }
       } catch (e) {
         console.error("WebSocket message error:", e);
+        setIsRunning(false);
       }
     };
 
@@ -64,6 +62,7 @@ function App() {
       console.log(`WebSocket closed with code: ${event.code}`);
       setConnectionStatus("disconnected");
       setIsRunning(false);
+      isWaitingForInput.current = false;
       reconnectAttempts.current += 1;
       const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 10000);
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
@@ -73,13 +72,13 @@ function App() {
       console.error("WebSocket error:", error);
       setConnectionStatus("error");
       setIsRunning(false);
+      isWaitingForInput.current = false;
     };
   };
 
   const sendInput = (input) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ input }));
-      // Don't clear isWaitingForInput here; backend controls it
     } else {
       console.error("WebSocket not connected");
       isWaitingForInput.current = false;
@@ -117,7 +116,6 @@ function App() {
         <TerminalDisplay
           ws={wsRef.current}
           isWaitingForInput={isWaitingForInput}
-          inputBuffer={inputBufferRef}
           sendInput={sendInput}
           resetTerminal={resetTerminal}
           isRunning={isRunning}
