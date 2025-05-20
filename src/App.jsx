@@ -38,7 +38,7 @@ function App() {
         } else {
           clearInterval(pingInterval);
         }
-      }, 3000); // Ping every 3 seconds
+      }, 2000); // Ping every 2 seconds
     };
 
     ws.onmessage = (event) => {
@@ -67,7 +67,7 @@ function App() {
       setIsRunning(false);
       isWaitingForInput.current = false;
       reconnectAttempts.current += 1;
-      const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 10000);
+      const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 5000);
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
     };
 
@@ -98,13 +98,16 @@ function App() {
       console.log("Sent code:", code);
       setTimeout(() => setResetTerminal(false), 0);
       isWaitingForInput.current = false;
-      // Timeout to reset isRunning if no output received
+      // Fallback timeout to reset state
       setTimeout(() => {
         if (isRunning && !isWaitingForInput.current) {
-          console.warn("No output received, resetting isRunning");
+          console.warn("No output received, resetting state");
           setIsRunning(false);
+          setResetTerminal(true);
+          setTimeout(() => setResetTerminal(false), 0);
+          wsRef.current.send(JSON.stringify({ error: "Reset due to no output" }));
         }
-      }, 10000); // 10-second timeout
+      }, 5000); // 5-second timeout
     } else {
       console.error("WebSocket not connected or process already running");
     }
