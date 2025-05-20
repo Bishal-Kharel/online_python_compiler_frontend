@@ -84,7 +84,7 @@ const TerminalDisplay = ({ ws, isWaitingForInput, sendInput, isRunning, setIsRun
     }
   }, [isWaitingForInput]);
 
-  const handleInputKeyPress = (e) => {
+  const handleInputKeyDown = (e) => {
     if (e.key === "Enter" && isWaitingForInput.current) {
       const input = inputValue.trim();
       if (input) {
@@ -106,7 +106,7 @@ const TerminalDisplay = ({ ws, isWaitingForInput, sendInput, isRunning, setIsRun
           className={styles.input}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleInputKeyPress}
+          onKeyDown={handleInputKeyDown}
           placeholder="Enter input here..."
         />
       )}
