@@ -1,63 +1,44 @@
-import React, { useEffect, useRef } from 'react';
-import { Terminal } from 'xterm';
-import 'xterm/css/xterm.css';
-import { FitAddon } from 'xterm-addon-fit';
-import styles from '../styles/TerminalDisplay.module.css';
+import React, { useEffect, useRef, useState } from "react";
+import { Terminal } from "xterm";
+import "xterm/css/xterm.css";
+import { FitAddon } from "xterm-addon-fit";
+import styles from "../styles/TerminalDisplay.module.css";
 
 const TerminalDisplay = ({
   ws,
   isWaitingForInput,
-  inputBuffer,
   sendInput,
   resetTerminal,
+  isRunning,
+  setIsRunning,
 }) => {
   const terminalRef = useRef(null);
   const fitAddonRef = useRef(new FitAddon());
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef(null);
 
   useEffect(() => {
     terminalRef.current = new Terminal({
       cursorBlink: true,
       theme: {
-        background: '#ffffff',
-        foreground: '#000000',
-        cursor: '#000000',
+        background: "#ffffff",
+        foreground: "#000000",
+        cursor: "#000000",
       },
       fontSize: 14,
     });
     terminalRef.current.loadAddon(fitAddonRef.current);
-    const termElement = document.getElementById('terminal');
+    const termElement = document.getElementById("terminal");
     terminalRef.current.open(termElement);
     fitAddonRef.current.fit();
-
-    terminalRef.current.onData((data) => {
-      if (isWaitingForInput.current) {
-        if (data === '\r') {
-          terminalRef.current.write('\r\n');
-          sendInput(inputBuffer.current);
-          inputBuffer.current = '';
-        } else if (data === '\b' || data === '\x7F') {
-          if (inputBuffer.current.length > 0) {
-            inputBuffer.current = inputBuffer.current.slice(0, -1);
-            terminalRef.current.write('\b \b');
-          }
-        } else if (data >= ' ' && data <= '~') {
-          inputBuffer.current += data;
-          terminalRef.current.write(data);
-        }
-      } else {
-        if (data === '\r') {
-          terminalRef.current.write('\r\n');
-        }
-      }
-    });
 
     const handleResize = () => {
       fitAddonRef.current.fit();
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       if (terminalRef.current) {
         terminalRef.current.dispose();
       }
@@ -67,39 +48,75 @@ const TerminalDisplay = ({
   useEffect(() => {
     if (ws) {
       ws.onmessage = (event) => {
-        console.log('WebSocket message:', event.data); // Add logging
+        console.log("WebSocket message:", event.data);
         try {
           const data = JSON.parse(event.data);
           if (data.output) {
-            const cleanOutput = data.output.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            const cleanOutput = data.output.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
             terminalRef.current.write(cleanOutput);
-            isWaitingForInput.current = cleanOutput.includes('>>>');
-            console.log('isWaitingForInput:', isWaitingForInput.current); // Add logging
+            isWaitingForInput.current = cleanOutput.includes(">>>");
+            console.log("isWaitingForInput:", isWaitingForInput.current);
+            if (cleanOutput.includes("Process exited")) {
+              setIsRunning(false);
+            }
           } else if (data.error) {
             terminalRef.current.write(`Error: ${data.error}\r\n`);
             isWaitingForInput.current = false;
-          } else if (data.message) {
-            terminalRef.current.write(`${data.message}\r\n`);
-            isWaitingForInput.current = false;
+            setIsRunning(false);
+          } else if (data.pong) {
+            console.log("Received pong");
           }
         } catch (e) {
-          console.error('WebSocket message error:', e);
+          console.error("WebSocket message error:", e);
+          terminalRef.current.write(`Error: WebSocket message error\r\n`);
+          setIsRunning(false);
         }
       };
     }
-  }, [ws]);
+  }, [ws, setIsRunning]);
 
   useEffect(() => {
-    if (resetTerminal) {
-      if (terminalRef.current) {
-        terminalRef.current.reset();
-        fitAddonRef.current.fit();
-      }
+    if (resetTerminal && terminalRef.current) {
+      terminalRef.current.reset();
+      fitAddonRef.current.fit();
       isWaitingForInput.current = false;
+      setInputValue("");
     }
   }, [resetTerminal]);
 
-  return <div id="terminal" className={styles.terminal}></div>;
+  useEffect(() => {
+    if (isWaitingForInput.current && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isWaitingForInput]);
+
+  const handleInputKeyPress = (e) => {
+    if (e.key === "Enter" && isWaitingForInput.current) {
+      const input = inputValue.trim();
+      if (input) {
+        sendInput(input);
+        terminalRef.current.write(input + "\r\n");
+        setInputValue("");
+      }
+    }
+  };
+
+  return (
+    <div className={styles.terminalContainer}>
+      <div id="terminal" className={styles.terminal} />
+      {isWaitingForInput.current && (
+        <input
+          ref={inputRef}
+          type="text"
+          className={styles.input}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={handleInputKeyPress}
+          placeholder="Enter input here..."
+        />
+      )}
+    </div>
+  );
 };
 
 export default TerminalDisplay;
