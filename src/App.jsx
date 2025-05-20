@@ -22,9 +22,8 @@ function App() {
   const connectWebSocket = () => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = `${
-      window.location.protocol === "https:" ? "wss" : "ws"
-    }://${window.location.host.replace("frontend", "backend")}/ws/code/`;
+    // Use the correct backend URL
+    const wsUrl = `wss://codebuddy-backend-3dgv.onrender.com/ws/code/`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
     setConnectionStatus("connecting");
@@ -36,10 +35,11 @@ function App() {
     };
 
     ws.onclose = (event) => {
-      console.log(`WebSocket closed with code: ${event.code}`);
+      console.log(`WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
       setConnectionStatus("disconnected");
       reconnectAttempts.current += 1;
       const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 10000);
+      console.log(`Reconnecting in ${delay}ms...`);
       reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
     };
 
